@@ -14,9 +14,9 @@ function starterLines() {
   var L = function (sec, label, pct) { return { id: uid(), sec: sec, label: label, pct: !!pct, v: [0, 0, 0] }; };
   return [
     L('income', 'Rideshare platform 1'), L('income', 'Rideshare platform 2'),
-    L('gst', 'Fuel', 1), L('gst', 'Insurance (GST part)', 1), L('gst', 'Phone', 1), L('gst', 'Tolls', 1),
+    L('gst', 'Fuel', 1), L('gst', 'Insurance (premium less stamp duty)', 1), L('gst', 'Phone', 1), L('gst', 'Tolls', 1),
     L('gst', 'Car wash', 1), L('gst', 'Servicing and repairs', 1), L('gst', 'Parking', 1),
-    L('gst', 'Platform service fees'),
+    L('gst', 'Platform service fees (only if GST charged)'),
     L('nogst', 'Registration (incl. CTP)', 1), L('nogst', 'Car loan interest', 1), L('nogst', 'Bank fees', 1)
   ];
 }
@@ -42,7 +42,7 @@ function calc(q) {
     byMonth.push({ income: inc, purchases: pur, nogst: nog });
   }
   var a1 = I / 11, b1 = P / 11;
-  return { g1: I, a1: a1, g11: P, b1: b1, net: a1 - b1, nogst: N, byMonth: byMonth };
+  return { g1: I, a1: a1, g11: P, b1: b1, net: a1 - b1, exgst: P - b1, nogst: N, byMonth: byMonth };
 }
 
 /* ---------- state ---------- */
@@ -61,6 +61,10 @@ function sanitize(raw) {
     if (!m || !q || !Array.isArray(q.lines)) return;
     s.quarters[k] = {
       pct: [0, 1, 2].map(function (i) { return clampPct((q.pct || [])[i]); }),
+      km: {
+        b: [0, 1, 2].map(function (i) { return Math.max(0, num(((q.km || {}).b || [])[i])); }),
+        t: [0, 1, 2].map(function (i) { return Math.max(0, num(((q.km || {}).t || [])[i])); })
+      },
       lines: q.lines.slice(0, 80).map(function (l) {
         return {
           id: String(l.id || uid()).slice(0, 12).replace(/[^\w-]/g, ''),
@@ -98,7 +102,11 @@ if (typeof document === 'undefined') {
     var $ = function (id) { return document.getElementById(id); };
 
     function load() { try { return sanitize(JSON.parse(localStorage.getItem(KEY))); } catch (e) { return blankState(); } }
-    function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { say('Could not save here. Export a backup from Settings.'); } }
+    function clock() { return new Date().toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }); }
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(S)); $('bar-st').textContent = 'Saved on this device at ' + clock(); return true; }
+      catch (e) { $('bar-st').textContent = 'Could not save on this device. Export a backup from Settings.'; return false; }
+    }
     function say(t) { $('status').textContent = t; clearTimeout(saveTimer); saveTimer = setTimeout(function () { $('status').textContent = ''; }, 3500); }
     function cur() { return S.quarters[S.current]; }
 
@@ -142,6 +150,31 @@ if (typeof document === 'undefined') {
       }
     }
 
+    function renderKm(q, qi) {
+      var box = $('km-row'); box.textContent = '';
+      q.km = q.km || { b: [0, 0, 0], t: [0, 0, 0] };
+      for (var m = 0; m < 3; m++) {
+        (function (m) {
+          var b = el('input', { class: 'pct', type: 'number', inputmode: 'decimal', min: 0, step: '0.1', value: q.km.b[m] ? String(q.km.b[m]) : '', placeholder: 'Business km', 'aria-label': 'Business km, ' + qi.months[m] });
+          b.dataset.kb = m;
+          var t = el('input', { class: 'pct', type: 'number', inputmode: 'decimal', min: 0, step: '0.1', value: q.km.t[m] ? String(q.km.t[m]) : '', placeholder: 'Total km', 'aria-label': 'Total km, ' + qi.months[m] });
+          t.dataset.kt = m;
+          var res = el('div', { class: 'kmres' }); res.id = 'kmres-' + m;
+          var ap = el('button', { type: 'button', text: 'Use this %' }); ap.dataset.kapply = m;
+          box.appendChild(el('div', { class: 'kmcol' }, [el('div', { class: 'mh', text: qi.months[m] }), b, t, res, ap]));
+        })(m);
+      }
+      updateKm();
+    }
+    function kmPct(q, m) { var t = num(q.km.t[m]); return t > 0 ? Math.min(100, num(q.km.b[m]) / t * 100) : null; }
+    function updateKm() {
+      var q = cur(); if (!q || !q.km) return;
+      for (var m = 0; m < 3; m++) {
+        var p = kmPct(q, m), n = $('kmres-' + m);
+        if (n) n.textContent = p === null ? '' : p.toFixed(1) + '%';
+      }
+    }
+
     function renderSection(sec, q, qi) {
       var host = $('sec-' + sec), cfg = SECTIONS[sec]; host.textContent = '';
       host.appendChild(el('h2', { text: cfg.title }));
@@ -178,7 +211,7 @@ if (typeof document === 'undefined') {
       ['income', 'gst', 'nogst'].forEach(function (s) { $('sec-' + s).hidden = !q; });
       $('pct-row').parentNode.hidden = !q;
       if (!q) { update(); return; }
-      renderPct(q, qi);
+      renderPct(q, qi); renderKm(q, qi);
       ['income', 'gst', 'nogst'].forEach(function (s) { renderSection(s, q, qi); });
       update();
     }
@@ -186,13 +219,14 @@ if (typeof document === 'undefined') {
     /* Update numbers only, so inputs keep focus while typing. */
     function update() {
       var q = cur();
-      var r = q ? calc(q) : { g1: 0, a1: 0, g11: 0, b1: 0, net: 0, nogst: 0 };
+      var r = q ? calc(q) : { g1: 0, a1: 0, g11: 0, b1: 0, net: 0, exgst: 0, nogst: 0, byMonth: [{ income: 0 }, { income: 0 }, { income: 0 }] };
       $('g1').textContent = money(r.g1); $('a1').textContent = money(r.a1);
       $('g11').textContent = money(r.g11); $('b1').textContent = money(r.b1);
       var lbl = r.net >= 0 ? 'GST to pay' : 'GST refund';
       $('netlbl').textContent = lbl; $('bar-lbl').textContent = lbl;
       $('net').textContent = money(Math.abs(r.net)); $('bar-net').textContent = money(Math.abs(r.net));
       $('ng').textContent = money(r.nogst);
+      $('exgst').textContent = money(r.exgst);
       if (q) {
         var base = { income: 0, gst: 0, nogst: 0 };
         for (var m = 0; m < 3; m++) {
@@ -202,15 +236,27 @@ if (typeof document === 'undefined') {
         ['income', 'gst', 'nogst'].forEach(function (s) { var n = $('st-' + s); if (n) n.textContent = money(base[s]); });
         q.lines.forEach(function (l) { var n = document.querySelector('[data-lt="' + l.id + '"]'); if (n) n.textContent = 'Line total ' + money(sum(l.v)); });
       }
-      var flag = $('pctflag');
-      var hi = q && q.pct.some(function (p) { return clampPct(p) >= 100; }) && q.lines.some(function (l) { return l.pct && sum(l.v) > 0; });
-      flag.hidden = !hi;
-      flag.textContent = hi ? 'Business use is 100% in a month. If you also use the car or phone privately, lower it to your real share.' : '';
+      var flag = $('pctflag'), msgs = [], qiF = S.current && qInfo(S.current);
+      if (q && qiF) {
+        var hasAmt = function (m) { return q.lines.some(function (l) { return l.sec !== 'income' && l.pct && num(l.v[m]) > 0; }); };
+        if ([0, 1, 2].some(function (m) { return clampPct(q.pct[m]) >= 100 && hasAmt(m); }))
+          msgs.push('Business use is 100% in a month. The ATO treats driving with no accepted job as private, so 100% is hard to defend if you also use the car or phone privately. Use your real share.');
+        var zero = [0, 1, 2].filter(function (m) { return clampPct(q.pct[m]) === 0 && hasAmt(m) && r.byMonth[m].income > 0; });
+        if (zero.length) msgs.push('Business use is 0% in ' + zero.map(function (m) { return qiF.months[m]; }).join(', ') + ', so car and phone costs are not counted there. Set your real share.');
+      }
+      flag.hidden = !msgs.length;
+      flag.textContent = msgs.join(' ');
     }
 
     /* ---------- events ---------- */
     document.addEventListener('input', function (e) {
       var t = e.target, q = cur(); if (!q) return;
+      if (t.dataset.kb !== undefined || t.dataset.kt !== undefined) {
+        q.km = q.km || { b: [0, 0, 0], t: [0, 0, 0] };
+        if (t.dataset.kb !== undefined) q.km.b[+t.dataset.kb] = Math.max(0, num(t.value));
+        else q.km.t[+t.dataset.kt] = Math.max(0, num(t.value));
+        updateKm(); save(); return;
+      }
       if (t.dataset.p !== undefined) { q.pct[+t.dataset.p] = clampPct(t.value); }
       else if (t.dataset.m !== undefined) { var l = q.lines.find(function (x) { return x.id === t.dataset.id; }); if (l) l.v[+t.dataset.m] = Math.max(0, num(t.value)); }
       else if (t.dataset.f === 'label') { var l2 = q.lines.find(function (x) { return x.id === t.dataset.id; }); if (l2) l2.label = t.value.slice(0, 60); }
@@ -221,6 +267,12 @@ if (typeof document === 'undefined') {
 
     document.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return; var q = cur();
+      if (b.dataset.kapply !== undefined && q && q.km) {
+        var m = +b.dataset.kapply, p = kmPct(q, m);
+        if (p === null) return say('Enter business km and total km first.');
+        q.pct[m] = Math.round(p * 10) / 10; save(); renderPct(q, qInfo(S.current)); update();
+        return say('Business use for ' + qInfo(S.current).months[m] + ' set to ' + q.pct[m] + '%.');
+      }
       if (b.dataset.add && q) {
         q.lines.push({ id: uid(), sec: b.dataset.add, label: '', pct: false, v: [0, 0, 0] });
         save(); renderAll();
@@ -251,6 +303,94 @@ if (typeof document === 'undefined') {
       if (navigator.share) navigator.share({ text: t }).catch(function () {}); else say('Sharing is not available here. Use Copy instead.');
     });
 
+    /* save button (figures are also kept on every keystroke) */
+    $('btn-save').addEventListener('click', function () { if (save()) say('Saved on this device.'); });
+
+    /* PDF download */
+    function pdfBytes() {
+      var q = cur(), qi = S.current && qInfo(S.current), JS = window.jspdf && window.jspdf.jsPDF;
+      if (!q || !qi || !JS) return null;
+      var d = new JS({ unit: 'mm', format: 'a4' });
+      var L = 18, R = 192, EDG = [114, 140, 166, 192], y = 20;
+      var pm = function (n) { return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+      var P3 = q.pct.map(function (p) { return clampPct(p) / 100; });
+      var rows = { income: [], gst: [], nogst: [] };
+      q.lines.forEach(function (l) {
+        if (!sum(l.v)) return;
+        var shared = l.pct && l.sec !== 'income';
+        var v = shared ? l.v.map(function (x, i) { return num(x) * P3[i]; }) : l.v.map(num);
+        rows[l.sec].push({ lab: (l.label || 'Unnamed line') + (shared ? ' (x business %)' : ''), v: v });
+      });
+      var tot = function (list) { return [0, 1, 2].map(function (i) { return sum(list.map(function (r) { return r.v[i]; })); }); };
+      var r = calc(q);
+      d.setFont('helvetica', 'bold'); d.setFontSize(18); d.setTextColor(31, 107, 82);
+      d.text('BAS worksheet: ' + qi.label.replace('–', '-'), L, y); y += 7;
+      d.setFont('helvetica', 'normal'); d.setFontSize(9.5); d.setTextColor(29, 36, 32);
+      var who = [S.profile.name, S.profile.abn ? 'ABN ' + S.profile.abn : '', qi.months[0] + ' to ' + qi.months[2] + ', financial year ' + qi.fyLabel.replace('–', '-')].filter(Boolean).join('  |  ');
+      d.text(who, L, y); y += 5;
+      d.setFontSize(8.5); d.setTextColor(93, 106, 98);
+      d.text('Amounts include GST unless stated. Created ' + new Date().toLocaleDateString('en-AU') + ' from the figures in the app.', L, y); y += 9;
+
+      function head(t) { if (y > 255) { d.addPage(); y = 20; } d.setFont('helvetica', 'bold'); d.setFontSize(12); d.setTextColor(29, 36, 32); d.text(t, L, y); y += 4; }
+      function table(headers, body, edges) {
+        var h = 6.5;
+        d.setFillColor(226, 239, 233); d.rect(L, y, R - L, h, 'F');
+        d.setFont('helvetica', 'bold'); d.setFontSize(8.5); d.setTextColor(29, 36, 32);
+        d.text(headers[0], L + 2, y + 4.4);
+        edges.forEach(function (e, i) { d.text(headers[i + 1], e - 2, y + 4.4, { align: 'right' }); });
+        y += h;
+        body.forEach(function (row) {
+          if (y > 278) { d.addPage(); y = 20; }
+          d.setFont('helvetica', row.total ? 'bold' : 'normal'); d.setFontSize(9); d.setTextColor(29, 36, 32);
+          if (row.total) { d.setDrawColor(0, 0, 0); d.setLineWidth(0.4); d.line(L, y, R, y); }
+          d.text(String(row.c[0]).slice(0, 62), L + 2, y + 4.6);
+          edges.forEach(function (e, i) { d.text(row.c[i + 1], e - 2, y + 4.6, { align: 'right' }); });
+          y += h;
+          d.setDrawColor(217, 222, 216); d.setLineWidth(0.2); d.line(L, y, R, y);
+        });
+        y += 5;
+      }
+      var monthly = function (list, label) {
+        return list.map(function (x) { return { c: [x.lab].concat(x.v.map(pm), [pm(sum(x.v))]) }; })
+          .concat([{ c: [label].concat(tot(list).map(pm), [pm(sum(tot(list)))]), total: true }]);
+      };
+      var hdr = function (first) { return [first].concat(qi.months, ['Total']); };
+
+      head('BAS figures');
+      table(['BAS label', 'Amount'], [
+        { c: ['G1  Total sales', pm(r.g1)] }, { c: ['1A  GST on sales (G1 / 11)', pm(r.a1)] },
+        { c: ['G11  Purchases (business share)', pm(r.g11)] }, { c: ['1B  GST credits (G11 / 11)', pm(r.b1)] },
+        { c: [r.net >= 0 ? 'GST to pay (1A minus 1B)' : 'GST refund (1B minus 1A)', pm(Math.abs(r.net))], total: true }], [R]);
+      head('Income'); table(hdr('Income (gross, incl. GST)'), monthly(rows.income, 'Total sales (G1)'), EDG);
+      head('Expenses with GST'); table(hdr('Purchases with GST (business share)'), monthly(rows.gst, 'Total purchases (G11)'), EDG);
+      if (rows.nogst.length) { head('Expenses without GST (not on the BAS, for the tax return)'); table(hdr('Business share'), monthly(rows.nogst, 'Total'), EDG); }
+      d.setFont('helvetica', 'normal'); d.setFontSize(8.5); d.setTextColor(93, 106, 98);
+      var notes = [
+        'Business-use %: ' + qi.months.map(function (m, i) { return m + ' ' + q.pct[i] + '%'; }).join(', ') + '. Lines marked x business % are multiplied by this.',
+        'Purchases excluding GST (G11 minus 1B): ' + pm(r.exgst) + '. This is the figure that counts towards income tax for those purchases.',
+        'Keep this with your receipts and platform tax summaries. Business records are kept for five years.',
+        'This is a worksheet record, not a lodgment receipt, and not tax advice.'];
+      notes.forEach(function (n) { if (y > 285) { d.addPage(); y = 20; } d.text(n, L, y); y += 5; });
+      return d.output('arraybuffer');
+    }
+    $('btn-pdf').addEventListener('click', function () {
+      var bytes = null; try { bytes = pdfBytes(); } catch (e) { bytes = null; }
+      if (!bytes) return say('Could not create the PDF here. Use Copy BAS figures instead.');
+      var name = 'BAS_' + qInfo(S.current).label.replace(/[^\w]+/g, '_') + '.pdf';
+      var blob = new Blob([bytes], { type: 'application/pdf' });
+      var mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      try {
+        var file = new File([blob], name, { type: 'application/pdf' });
+        if (mobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: name }).catch(function () {}); return;
+        }
+      } catch (e) { /* fall through to a normal download */ }
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      say('PDF created.');
+    });
+
     /* settings */
     $('btn-settings').addEventListener('click', function () { $('s-name').value = S.profile.name; $('s-abn').value = S.profile.abn; $('dlg-settings').showModal(); });
     $('s-name').addEventListener('input', function () { S.profile.name = this.value.slice(0, 80); save(); renderHeader(); });
@@ -275,11 +415,6 @@ if (typeof document === 'undefined') {
       };
       r.readAsText(f);
     });
-    $('btn-wipe').addEventListener('click', function () {
-      if (confirm('Delete everything saved on this device? Export a backup first if you might need it.')) {
-        S = blankState(); try { localStorage.removeItem(KEY); } catch (e) {} $('dlg-settings').close(); renderAll(); openNewQuarter();
-      }
-    });
 
     /* new quarter */
     function openNewQuarter() {
@@ -296,8 +431,8 @@ if (typeof document === 'undefined') {
       if (S.quarters[key]) { S.current = key; save(); renderAll(); return say('That quarter already exists. Switched to it.'); }
       var src = cur();
       S.quarters[key] = ($('nq-copy').checked && src)
-        ? { pct: src.pct.slice(), lines: src.lines.map(function (l) { return { id: uid(), sec: l.sec, label: l.label, pct: l.pct, v: [0, 0, 0] }; }) }
-        : { pct: [100, 100, 100], lines: starterLines() };
+        ? { pct: src.pct.slice(), km: { b: [0, 0, 0], t: [0, 0, 0] }, lines: src.lines.map(function (l) { return { id: uid(), sec: l.sec, label: l.label, pct: l.pct, v: [0, 0, 0] }; }) }
+        : { pct: [0, 0, 0], km: { b: [0, 0, 0], t: [0, 0, 0] }, lines: starterLines() };
       S.current = key; save(); renderAll();
     });
 

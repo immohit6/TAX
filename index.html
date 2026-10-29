@@ -36,6 +36,7 @@
     <div class="row"><span class="lbl"><span class="code">1A</span>GST on sales</span><span id="a1">$0.00</span></div>
     <div class="row"><span class="lbl"><span class="code">G11</span>Purchases</span><span id="g11">$0.00</span></div>
     <div class="row"><span class="lbl"><span class="code">1B</span>GST credits</span><span id="b1">$0.00</span></div>
+    <div class="row sub2"><span>Purchases excluding GST (G11 minus 1B)</span><span id="exgst">$0.00</span></div>
     <div class="result">
       <div class="row"><span id="netlbl">GST to pay</span><span class="tag">1A − 1B</span></div>
       <div class="big" id="net">$0.00</div>
@@ -43,6 +44,7 @@
     <p class="flag" id="pctflag" hidden></p>
     <div class="row sub2"><span>No-GST expenses (for your tax return)</span><span id="ng">$0.00</span></div>
     <div class="actions">
+      <button type="button" id="btn-pdf" class="primary">Download BAS (PDF)</button>
       <button type="button" id="btn-copy">Copy BAS figures</button>
       <button type="button" id="btn-share">Share summary</button>
     </div>
@@ -51,20 +53,70 @@
 
   <section class="card">
     <h2>Business use %</h2>
-    <p class="note">Applied to lines marked "× business %" (usually car and phone). Use your real share, not a round 100.</p>
+    <p class="note">Applied to lines marked "× business %" (usually car and phone). Use your real share, not a round 100. The ATO treats driving with no accepted job as private, so business use is rarely 100%.</p>
     <div class="months" id="pct-row"></div>
+    <details class="kmcalc">
+      <summary>Work it out from kilometres</summary>
+      <p class="note">Business % = business km ÷ total km for the month. Business km run from accepting a job until drop-off. Total km is your odometer change.</p>
+      <div class="months" id="km-row"></div>
+    </details>
   </section>
 
   <section class="card" id="sec-income"></section>
   <section class="card" id="sec-gst"></section>
   <section class="card" id="sec-nogst"></section>
 
-  <p class="fine">Amounts are GST-inclusive, straight from your receipts and platform tax summaries. This is a worksheet, not tax advice. Check your figures against ato.gov.au or with a registered tax agent before you lodge.</p>
-  <p class="fine">Your data is saved only in this browser on this device. Nothing is sent anywhere. Use Settings to export a backup.</p>
+  <section class="card">
+    <h2>Rules this worksheet follows</h2>
+    <p class="note">Checked against the ATO and other sources on 30 October 2026. Rules change, so confirm anything important on ato.gov.au or with a registered tax or BAS agent.</p>
+    <details open>
+      <summary>Sales (G1 and 1A)</summary>
+      <ul class="rules">
+        <li>Ride-sourcing drivers must be registered for GST before their first trip, whatever they earn. (ATO)</li>
+        <li>GST is worked out on the full fare, not the amount left after the platform's fee. A $55 fare has $5 GST, one eleventh. (ATO)</li>
+        <li>Enter gross amounts including GST. 1A is G1 ÷ 11.</li>
+        <li>Tips and incentives are assessable income. Whether GST applies to a particular incentive depends on what it is, so if you are unsure, ask a BAS agent. (ATO, Uber)</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Purchases (G11 and 1B)</summary>
+      <ul class="rules">
+        <li>You can claim a GST credit only if the price included GST, the purchase was for your business, and you hold a tax invoice for anything over $82.50. (ATO)</li>
+        <li>For shared costs you can claim only the business share of the GST. 1B is the GST-inclusive business share ÷ 11. (ATO)</li>
+        <li><strong>Platform fees:</strong> a credit applies only if the platform charged GST on the fee. Uber says its service fee is subject to GST. Check your DiDi summary shows GST on its fee before you count it. (ATO, Uber)</li>
+        <li><strong>Insurance:</strong> GST is not charged on stamp duty, so enter the premium less stamp duty. (ATO)</li>
+        <li><strong>Car running costs:</strong> credits come from actual costs × your business-use share, not from the cents-per-km rate. The share can be business km ÷ total km. (ATO GST bulletin 2006/1)</li>
+        <li>Buying a car or equipment is a capital purchase (G10, not G11). The credit on a car is limited to one eleventh of the car limit. This worksheet does not handle capital purchases.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Costs with no GST credit</summary>
+      <ul class="rules">
+        <li>Bank fees and loan interest are financial supplies, which are input-taxed, so they carry no GST credit. They still count for income tax at the business share. (ATO, secondary source for bank fees)</li>
+        <li>Vehicle registration and CTP: most state charges carry no GST. If your invoice shows GST, put that part in the GST list instead. (VicRoads page does not mention GST; confirm on your invoice)</li>
+        <li>Depreciation and car loan interest never go on the BAS. They are for your tax return.</li>
+        <li>If you claim a GST credit on something, your income tax deduction is the cost minus the GST. That is the "purchases excluding GST" figure above. (ATO)</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Due dates and records</summary>
+      <ul class="rules">
+        <li>Quarterly BAS: Jul–Sep due 28 Oct, Oct–Dec 28 Feb, Jan–Mar 28 Apr, Apr–Jun 28 Jul. Online lodgers may get an extra two weeks except for Oct–Dec, and agents may give more. If a date falls on a weekend or public holiday, the next business day applies. (ATO, page updated 17 Sep 2026)</li>
+        <li>Keep records for five years: platform tax summaries, receipts, a logbook and odometer readings. (ATO)</li>
+        <li>Cents per km, if you use it for income tax, is 88c for 2025-26, capped at 5,000 business km. (secondary source, confirm on ato.gov.au)</li>
+      </ul>
+    </details>
+  </section>
+
+  <p class="fine">Amounts are GST-inclusive, straight from your receipts and platform tax summaries. This is a worksheet, not tax advice. It assumes you report each month's income and costs as they were received and paid. If you use a different GST accounting basis, ask your BAS agent. Check your figures against ato.gov.au or with a registered tax or BAS agent before you lodge.</p>
+  <p class="fine">Your data is saved only in this browser on this device, every time you type. Nothing is sent anywhere. Use Settings to export a backup.</p>
 </div>
 
 <div class="bar" id="bar">
-  <div class="in"><span id="bar-lbl">GST to pay</span><strong id="bar-net">$0.00</strong></div>
+  <div class="in">
+    <div class="bar-l"><span id="bar-lbl">GST to pay</span><strong id="bar-net">$0.00</strong><span class="stline" id="bar-st" role="status">Saved on this device</span></div>
+    <button type="button" id="btn-save" class="primary">Save</button>
+  </div>
 </div>
 
 <dialog id="dlg-settings">
@@ -75,8 +127,8 @@
     <div class="dlg-actions col">
       <button type="button" id="btn-export">Export backup (JSON)</button>
       <button type="button" id="btn-import">Import backup</button>
-      <button type="button" class="danger" id="btn-wipe">Delete all data on this device</button>
     </div>
+    <p class="note">Your figures stay on this device. Export a backup before you clear your browser data or change phones.</p>
     <div class="dlg-actions"><button value="close" class="primary">Done</button></div>
   </form>
 </dialog>
@@ -94,7 +146,7 @@
         <option value="4">Q4 · Apr–Jun (due 28 Jul)</option>
       </select></label>
     <label class="chk"><input type="checkbox" id="nq-copy" checked> Copy the lines and business % from the current quarter (amounts start at zero)</label>
-    <p class="note">Due dates are the usual ones. Your own may differ, so confirm on ato.gov.au or in your ATO online account.</p>
+    <p class="note">Usual due dates. Online lodgers may get two extra weeks except for Oct–Dec, and agents may give more. Confirm yours on ato.gov.au or in your ATO online account.</p>
     <div class="dlg-actions">
       <button value="cancel">Cancel</button>
       <button value="ok" class="primary" id="nq-ok">Create</button>
@@ -103,6 +155,7 @@
 </dialog>
 
 <input type="file" id="file" accept="application/json,.json" hidden>
+<script src="vendor/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
