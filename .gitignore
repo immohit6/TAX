@@ -1,0 +1,6 @@
+# Never commit personal data to this public repo
+private/
+*backup*.json
+bas-backup-*.json
+.DS_Store
+node_modules/

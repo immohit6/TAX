@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BAS Quarter</title>
+<meta name="description" content="A simple quarterly BAS worksheet for sole traders and rideshare drivers. Your data stays on your device.">
+<meta name="theme-color" content="#1f6b52">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BAS">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <span class="eyebrow" id="who">Set up your details</span>
+      <button type="button" class="link" id="btn-settings">Settings</button>
+    </div>
+    <h1>BAS worksheet</h1>
+    <div class="qrow">
+      <label class="sel"><span class="sr">Quarter</span><select id="quarter"></select></label>
+      <button type="button" id="btn-newq">New quarter</button>
+    </div>
+    <p class="sub" id="qdesc"></p>
+  </header>
+
+  <section class="card results" aria-live="polite">
+    <h2>BAS figures</h2>
+    <div class="row"><span class="lbl"><span class="code">G1</span>Total sales</span><span id="g1">$0.00</span></div>
+    <div class="row"><span class="lbl"><span class="code">1A</span>GST on sales</span><span id="a1">$0.00</span></div>
+    <div class="row"><span class="lbl"><span class="code">G11</span>Purchases</span><span id="g11">$0.00</span></div>
+    <div class="row"><span class="lbl"><span class="code">1B</span>GST credits</span><span id="b1">$0.00</span></div>
+    <div class="result">
+      <div class="row"><span id="netlbl">GST to pay</span><span class="tag">1A − 1B</span></div>
+      <div class="big" id="net">$0.00</div>
+    </div>
+    <p class="flag" id="pctflag" hidden></p>
+    <div class="row sub2"><span>No-GST expenses (for your tax return)</span><span id="ng">$0.00</span></div>
+    <div class="actions">
+      <button type="button" id="btn-copy">Copy BAS figures</button>
+      <button type="button" id="btn-share">Share summary</button>
+    </div>
+    <span class="tag" id="status" role="status"></span>
+  </section>
+
+  <section class="card">
+    <h2>Business use %</h2>
+    <p class="note">Applied to lines marked "× business %" (usually car and phone). Use your real share, not a round 100.</p>
+    <div class="months" id="pct-row"></div>
+  </section>
+
+  <section class="card" id="sec-income"></section>
+  <section class="card" id="sec-gst"></section>
+  <section class="card" id="sec-nogst"></section>
+
+  <p class="fine">Amounts are GST-inclusive, straight from your receipts and platform tax summaries. This is a worksheet, not tax advice. Check your figures against ato.gov.au or with a registered tax agent before you lodge.</p>
+  <p class="fine">Your data is saved only in this browser on this device. Nothing is sent anywhere. Use Settings to export a backup.</p>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in"><span id="bar-lbl">GST to pay</span><strong id="bar-net">$0.00</strong></div>
+</div>
+
+<dialog id="dlg-settings">
+  <form method="dialog" class="dlg">
+    <h2>Settings</h2>
+    <label class="fld">Business or trading name<input id="s-name" autocomplete="off" placeholder="e.g. Sam Lee"></label>
+    <label class="fld">ABN<input id="s-abn" inputmode="numeric" autocomplete="off" placeholder="11 digits"></label>
+    <div class="dlg-actions col">
+      <button type="button" id="btn-export">Export backup (JSON)</button>
+      <button type="button" id="btn-import">Import backup</button>
+      <button type="button" class="danger" id="btn-wipe">Delete all data on this device</button>
+    </div>
+    <div class="dlg-actions"><button value="close" class="primary">Done</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-newq">
+  <form method="dialog" class="dlg" id="f-newq">
+    <h2>New quarter</h2>
+    <label class="fld">Financial year (starts 1 July)
+      <select id="nq-fy"></select></label>
+    <label class="fld">Quarter
+      <select id="nq-q">
+        <option value="1">Q1 · Jul–Sep (due 28 Oct)</option>
+        <option value="2">Q2 · Oct–Dec (due 28 Feb)</option>
+        <option value="3">Q3 · Jan–Mar (due 28 Apr)</option>
+        <option value="4">Q4 · Apr–Jun (due 28 Jul)</option>
+      </select></label>
+    <label class="chk"><input type="checkbox" id="nq-copy" checked> Copy the lines and business % from the current quarter (amounts start at zero)</label>
+    <p class="note">Due dates are the usual ones. Your own may differ, so confirm on ato.gov.au or in your ATO online account.</p>
+    <div class="dlg-actions">
+      <button value="cancel">Cancel</button>
+      <button value="ok" class="primary" id="nq-ok">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<input type="file" id="file" accept="application/json,.json" hidden>
+<script src="app.js"></script>
+</body>
+</html>
