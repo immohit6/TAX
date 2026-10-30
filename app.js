@@ -4,9 +4,9 @@
 var KEY = 'bas-quarter-v1';
 var QMONTHS = { 1: ['Jul', 'Aug', 'Sep'], 2: ['Oct', 'Nov', 'Dec'], 3: ['Jan', 'Feb', 'Mar'], 4: ['Apr', 'May', 'Jun'] };
 var SECTIONS = {
-  income: { title: 'Income (gross, incl. GST)', note: 'Gross fares, fees, bonuses and tips from each platform\'s monthly tax summary, before their service fee.', total: 'Total sales', add: 'Add income line' },
-  gst: { title: 'Expenses with GST', note: 'Anything that included GST on the receipt. Tick "× business %" for shared costs like the car and phone.', total: 'Total purchases (G11)', add: 'Add expense line' },
-  nogst: { title: 'Expenses without GST', note: 'These stay off the BAS. They still reduce income tax in your return, at the same business-use %.', total: 'Business portion', add: 'Add no-GST line' }
+  income: { title: 'Money you earned', code: 'G1', note: 'Gross amount from each platform\'s monthly tax summary, including GST and before their fee.', total: 'Total sales', add: 'Add income line' },
+  gst: { title: 'Costs that had GST', code: 'G11', note: 'Use the receipt amount. Tick "Shared" for things you also use privately, like the car and phone.', total: 'Counts towards G11', add: 'Add cost' },
+  nogst: { title: 'Costs with no GST', code: 'Not on BAS', note: 'These don\'t go on the BAS, but they still cut your income tax at the end of the year.', total: 'Business share', add: 'Add cost' }
 };
 
 /* Starter lines for a brand-new person. Rideshare-flavoured, all zero, fully editable. */
@@ -84,7 +84,9 @@ function qKey(fyStart, q) { return fyStart + '-' + String((fyStart + 1) % 100).p
 function qInfo(key) {
   var m = /^(\d{4})-(\d{2})-Q([1-4])$/.exec(key); if (!m) return null;
   var fy = +m[1], q = +m[3];
-  return { fy: fy, q: q, months: QMONTHS[q], fyLabel: m[1] + '–' + m[2], label: 'Q' + q + ' ' + m[1] + '–' + m[2] };
+  var y = q === 1 ? fy : fy + 1, due = { 1: '28 Oct ' + fy, 2: '28 Feb ' + (fy + 1), 3: '28 Apr ' + (fy + 1), 4: '28 Jul ' + (fy + 1) }[q];
+  return { fy: fy, q: q, months: QMONTHS[q], fyLabel: m[1] + '–' + m[2], label: 'Q' + q + ' ' + m[1] + '–' + m[2],
+    period: QMONTHS[q][0] + '–' + QMONTHS[q][2] + ' ' + (q === 2 ? fy : y), due: due };
 }
 function guessCurrentQuarter(d) {
   var mo = d.getMonth() + 1, y = d.getFullYear();
@@ -177,7 +179,8 @@ if (typeof document === 'undefined') {
 
     function renderSection(sec, q, qi) {
       var host = $('sec-' + sec), cfg = SECTIONS[sec]; host.textContent = '';
-      host.appendChild(el('h2', { text: cfg.title }));
+      var sum0 = el('span', { class: 'sectot', text: '$0.00' }); sum0.id = 'sh-' + sec;
+      host.appendChild(el('div', { class: 'sechead' }, [el('h2', {}, [el('span', { text: cfg.title + ' ' }), el('span', { class: 'code', text: cfg.code })]), sum0]));
       host.appendChild(el('p', { class: 'note', text: cfg.note }));
       var heads = el('div', { class: 'nums' }, qi.months.map(function (mn) { return el('div', { class: 'mh', text: mn }); }));
       host.appendChild(heads);
@@ -192,13 +195,13 @@ if (typeof document === 'undefined') {
           var inp = el('input', { class: 'num', type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: l.v[m] ? String(l.v[m]) : '', placeholder: '0.00', 'aria-label': (l.label || 'Line') + ', ' + qi.months[m] });
           inp.dataset.id = l.id; inp.dataset.m = m; nums.appendChild(inp);
         }
-        var tot = el('span', { class: 'lt', text: 'Line total ' + money(sum(l.v)) }); tot.dataset.lt = l.id;
-        var foot = el('div', { class: 'ltot' }, [tot]);
+        var tot = el('span', { class: 'lt', text: money(sum(l.v)) }); tot.dataset.lt = l.id;
+        var kids = [el('div', { class: 'lhead' }, [name, tot, del]), nums];
         if (sec !== 'income') {
           var cb = el('input', { type: 'checkbox', checked: l.pct }); cb.dataset.id = l.id; cb.dataset.f = 'pct';
-          foot.appendChild(el('label', { class: 'chk' }, [cb, el('span', { text: '× business %' })]));
+          kids.push(el('label', { class: 'chk' }, [cb, el('span', { text: 'Shared cost: only count my business %' })]));
         }
-        host.appendChild(el('div', { class: 'line' }, [el('div', { class: 'lhead' }, [name, del]), nums, foot]));
+        host.appendChild(el('div', { class: 'line' }, kids));
       });
       var add = el('button', { type: 'button', class: 'addline', text: '+ ' + cfg.add }); add.dataset.add = sec; host.appendChild(add);
       var st = el('div', { class: 'subtotal' }, [el('span', { text: cfg.total }), el('span', { text: '$0.00' })]);
@@ -223,7 +226,11 @@ if (typeof document === 'undefined') {
       $('g1').textContent = money(r.g1); $('a1').textContent = money(r.a1);
       $('g11').textContent = money(r.g11); $('b1').textContent = money(r.b1);
       var lbl = r.net >= 0 ? 'GST to pay' : 'GST refund';
-      $('netlbl').textContent = lbl; $('bar-lbl').textContent = lbl;
+      $('netlbl').textContent = r.net >= 0 ? 'You owe the ATO' : 'The ATO owes you';
+      $('bar-lbl').textContent = lbl;
+      var qv = S.current && qInfo(S.current);
+      $('verdict-sub').textContent = qv ? 'GST for ' + qv.period + '. BAS due ' + qv.due + ' (online lodgers may get 2 more weeks).' : '';
+      $('calc-line').textContent = money(r.a1) + ' GST you collected (1A) − ' + money(r.b1) + ' GST you paid (1B) = ' + money(Math.abs(r.net)) + (r.net >= 0 ? ' to pay' : ' back');
       $('net').textContent = money(Math.abs(r.net)); $('bar-net').textContent = money(Math.abs(r.net));
       $('ng').textContent = money(r.nogst);
       $('exgst').textContent = money(r.exgst);
@@ -233,8 +240,8 @@ if (typeof document === 'undefined') {
           var p = clampPct(q.pct[m]) / 100;
           q.lines.forEach(function (l) { var v = num(l.v[m]); base[l.sec] += l.sec === 'income' || !l.pct ? v : v * p; });
         }
-        ['income', 'gst', 'nogst'].forEach(function (s) { var n = $('st-' + s); if (n) n.textContent = money(base[s]); });
-        q.lines.forEach(function (l) { var n = document.querySelector('[data-lt="' + l.id + '"]'); if (n) n.textContent = 'Line total ' + money(sum(l.v)); });
+        ['income', 'gst', 'nogst'].forEach(function (s) { ['st-', 'sh-'].forEach(function (pre) { var n = $(pre + s); if (n) n.textContent = money(base[s]); }); });
+        q.lines.forEach(function (l) { var n = document.querySelector('[data-lt="' + l.id + '"]'); if (n) n.textContent = money(sum(l.v)); });
       }
       var flag = $('pctflag'), msgs = [], qiF = S.current && qInfo(S.current);
       if (q && qiF) {

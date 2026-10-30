@@ -46,7 +46,6 @@ button.link{border:0;min-height:36px;padding:0 4px;color:var(--accent)}
 button.x{min-height:36px;min-width:36px;padding:0;color:var(--muted);font-size:20px;line-height:1}
 .months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .mh{font:500 12px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:right}
-.mh:first-child{text-align:left}
 .line{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
 .line:first-of-type{border-top:0}
 .lhead{display:flex;gap:6px;align-items:center}
@@ -54,7 +53,7 @@ button.x{min-height:36px;min-width:36px;padding:0;color:var(--muted);font-size:2
 .lname:focus{border-bottom-color:var(--accent);outline:none}
 .nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .num,.pct{width:100%;min-height:46px;text-align:right;background:var(--input);border:1px solid var(--input-line);border-radius:8px;padding:0 10px;font-variant-numeric:tabular-nums}
-.ltot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.lt{font:500 14px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
 .chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .sechead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -87,3 +86,26 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-actions.col{flex-direction:column}
 .dlg-actions.col button{width:100%}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* Results: plain verdict, then the BAS boxes in the order they appear on the form */
+.verdict-k{margin:0;font-size:15px;color:var(--muted)}
+.results .big{font-size:40px;line-height:1.1;margin:2px 0 4px}
+.boxes-h{margin:18px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+.box{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.box:first-of-type{border-top:0}
+.box .code{min-width:42px;font-size:13px;padding:4px 6px}
+.bl{font-weight:600;min-width:0}
+.bh{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.bv{font:600 18px var(--body);font-variant-numeric:tabular-nums;white-space:nowrap}
+.calc-line{margin:8px 0 0;padding:10px 12px;border-radius:8px;background:var(--accent-soft);font-size:14px;font-variant-numeric:tabular-nums}
+.more{margin-top:12px}
+.more .row{font-size:14px;color:var(--muted)}
+.sechead{align-items:center}
+.sechead h2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0}
+.sectot{font:600 17px var(--body);font-variant-numeric:tabular-nums;white-space:nowrap}
+.line{gap:8px;padding:10px 0}
+.lhead{gap:10px}
+.wrap>*{min-width:0}
+.calc-line{overflow-wrap:anywhere}
+.line{grid-template-columns:minmax(0,1fr)}
+.lname{width:0}

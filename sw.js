@@ -1,5 +1,5 @@
 /* Offline shell. Bump VERSION when you change any file so phones pick up the update. */
-var VERSION = 'bas-v2';
+var VERSION = 'bas-v3';
 var FILES = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'vendor/jspdf.umd.min.js'];
 
 self.addEventListener('install', function (e) {

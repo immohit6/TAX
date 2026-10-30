@@ -31,29 +31,35 @@
   </header>
 
   <section class="card results" aria-live="polite">
-    <h2>BAS figures</h2>
-    <div class="row"><span class="lbl"><span class="code">G1</span>Total sales</span><span id="g1">$0.00</span></div>
-    <div class="row"><span class="lbl"><span class="code">1A</span>GST on sales</span><span id="a1">$0.00</span></div>
-    <div class="row"><span class="lbl"><span class="code">G11</span>Purchases</span><span id="g11">$0.00</span></div>
-    <div class="row"><span class="lbl"><span class="code">1B</span>GST credits</span><span id="b1">$0.00</span></div>
-    <div class="row sub2"><span>Purchases excluding GST (G11 minus 1B)</span><span id="exgst">$0.00</span></div>
-    <div class="result">
-      <div class="row"><span id="netlbl">GST to pay</span><span class="tag">1A − 1B</span></div>
-      <div class="big" id="net">$0.00</div>
-    </div>
+    <p class="verdict-k" id="netlbl">You owe the ATO</p>
+    <div class="big" id="net">$0.00</div>
+    <p class="sub" id="verdict-sub"></p>
     <p class="flag" id="pctflag" hidden></p>
-    <div class="row sub2"><span>No-GST expenses (for your tax return)</span><span id="ng">$0.00</span></div>
+
+    <h2 class="boxes-h">Copy these into your BAS</h2>
+    <div class="box"><span class="code">G1</span><span class="bl">Total sales<span class="bh">Everything you earned, including GST</span></span><span class="bv" id="g1">$0.00</span></div>
+    <div class="box"><span class="code">1A</span><span class="bl">GST on sales<span class="bh">One eleventh of G1</span></span><span class="bv" id="a1">$0.00</span></div>
+    <div class="box"><span class="code">G11</span><span class="bl">Other purchases<span class="bh">Business costs that had GST, including GST</span></span><span class="bv" id="g11">$0.00</span></div>
+    <div class="box"><span class="code">1B</span><span class="bl">GST on purchases<span class="bh">One eleventh of G11</span></span><span class="bv" id="b1">$0.00</span></div>
+    <p class="calc-line" id="calc-line"></p>
+
+    <details class="more">
+      <summary>Numbers for your tax return</summary>
+      <div class="row"><span>Costs with GST taken out (G11 − 1B)</span><span id="exgst">$0.00</span></div>
+      <div class="row"><span>Business share of no-GST costs</span><span id="ng">$0.00</span></div>
+    </details>
+
     <div class="actions">
       <button type="button" id="btn-pdf" class="primary">Download BAS (PDF)</button>
-      <button type="button" id="btn-copy">Copy BAS figures</button>
-      <button type="button" id="btn-share">Share summary</button>
+      <button type="button" id="btn-copy">Copy figures</button>
+      <button type="button" id="btn-share">Share</button>
     </div>
     <span class="tag" id="status" role="status"></span>
   </section>
 
   <section class="card">
-    <h2>Business use %</h2>
-    <p class="note">Applied to lines marked "× business %" (usually car and phone). Use your real share, not a round 100. The ATO treats driving with no accepted job as private, so business use is rarely 100%.</p>
+    <h2>How much of the car and phone was for driving?</h2>
+    <p class="note">Your business-use % for each month. It only applies to costs ticked "Shared". Driving without a job counts as private, so it's rarely 100%.</p>
     <div class="months" id="pct-row"></div>
     <details class="kmcalc">
       <summary>Work it out from kilometres</summary>
@@ -69,7 +75,7 @@
   <section class="card">
     <h2>Rules this worksheet follows</h2>
     <p class="note">Checked against the ATO and other sources on 30 October 2026. Rules change, so confirm anything important on ato.gov.au or with a registered tax or BAS agent.</p>
-    <details open>
+    <details>
       <summary>Sales (G1 and 1A)</summary>
       <ul class="rules">
         <li>Ride-sourcing drivers must be registered for GST before their first trip, whatever they earn. (ATO)</li>
